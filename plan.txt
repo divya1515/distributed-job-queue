@@ -1,0 +1,63 @@
+Create job  -> based on job type added in worker - consumer process the job - 
+Job type - ai summarise , data transform( what type of data and how to transform that and where it is ), webhook simulation ( to send job status to 3rd party service  )
+
+
+Now suppose if I have 2 job types 
+AI summarise and Data Transform 
+..for both of these job types different queue I should make or 1  and how many workers ??
+If 2 then 2 different workers also ??
+
+Since I want to receive web hook when the job is completed ..so worker should be in different service 
+
+Since worker only picks the job from the queue then now in each job I will send my web hook url ..so that whenever worker
+(other service) picks that job from queue then so its should have web hook url also .so that after processing it can give us 
+result on our webhook endpoint 
+
+user 
+/creat-job 
+payload :
+    job type: "ai-summarize" or "data-transform"
+    content : "Paragraph in ai summarize and in data transform it is data "
+    job id : automatically generated
+Queue -> push {
+    payload with webhook url for each job 
+}
+
+
+suppose in ai summarize or data transfer , i should send full text in API response only as it is ..in its schema ????
+means it is standard way to send full one text in API request in its payload???
+since 
+ai summarize - is a async task so this create job api will send response to client ...that processing your job 
+and in data transform also ..since i am using one queue ..then for 1 task it can take time ..if there are many messages in queue 
+so here also i will send same reponse from api that processing your task 
+
+since for all job my webhook url will be same 
+so still i should pass webhook url with each task in queue ???
+
+
+Worker service :
+Consumes job from queue then  when any job is completed 
+then with its job id and status and response like 
+{
+    job id : x,
+    status :"success",
+}
+
+but then it will send data also in API req only ???like summarize data and transformed data data ???
+
+
+Tables :
+client - client_id (uuid), id (primary key)
+validate client : client will give client_id (uuid)..now in db i need to check for this column , ideally this column should be indexed 
+but you previously told that indexing should be done on id , instead of on uuid 
+
+job ..refrencing of id 
+
+Need to push in a Queue : 
+push in job table 
+request.payload , job.id , webhook url
+
+
+job i am creating in api-service job_routes ..
+now i want to deliver this job into rabbitMQ code 
+rabbitMQ code will be in shared 

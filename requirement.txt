@@ -1,0 +1,7 @@
+redis
+aio-pika
+pydantic_settings
+alembic
+python-multipart
+httpx
+greenlet

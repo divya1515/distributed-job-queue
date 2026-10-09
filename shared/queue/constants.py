@@ -1,0 +1,7 @@
+JOBS_EXCHANGE = "jobs_exchange"
+RETRY_QUEUE = "jobs_retry_queue"
+MAIN_QUEUE = "main_jobs_queue"
+NOTIFICATION_QUEUE="notification_queue"
+JOBS_ROUTING_KEY = "jobs_key"
+RETRY_ROUTING_KEY = "retry_key"
+NOTIFICATION_ROUTING_KEY="notification_key"
