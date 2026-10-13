@@ -16,6 +16,7 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+from dotenv import load_dotenv
 from shared.db.database import Base
 from shared.db.models.jobs import Job
 from shared.db.models.job_items import JobItems
@@ -35,6 +36,16 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+
+# Prefer DATABASE_URL (same variable the services use) over the URL in alembic.ini,
+# swapping the async driver for psycopg2 since Alembic runs synchronously.
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option(
+        "sqlalchemy.url",
+        database_url.replace("+asyncpg", "+psycopg2").replace("%", "%%"),
+    )
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

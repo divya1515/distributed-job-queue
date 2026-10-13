@@ -35,7 +35,7 @@ async def is_allowed(key: str,capacity: int,refill_rate: float,requested: float 
 
 async def wait_for_token(key: str,capacity: int,refill_rate: float ,requested : float=1,poll_interval: float = 0.1):
     while True:
-        allowed=is_allowed(key,capacity,refill_rate,requested)
+        allowed=await is_allowed(key,capacity,refill_rate,requested)
         if allowed:
             return True
         await asyncio.sleep(poll_interval)

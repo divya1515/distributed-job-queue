@@ -2,10 +2,13 @@ import asyncio
 import aio_pika
 import json 
 from aio_pika import ExchangeType
+from settings import get_settings
 from shared.queue.constants import JOBS_EXCHANGE,MAIN_QUEUE,JOBS_ROUTING_KEY,RETRY_QUEUE,RETRY_ROUTING_KEY,NOTIFICATION_QUEUE,NOTIFICATION_ROUTING_KEY
 
+settings=get_settings()
+
 async def get_connection():
-    return await aio_pika.connect_robust("amqp://guest:guest@localhost/")
+    return await aio_pika.connect_robust(settings.RABBITMQ_URL)
 
 async def declare_topology(channel):
     exchange=await channel.declare_exchange(JOBS_EXCHANGE,ExchangeType.DIRECT,durable=True)
@@ -72,8 +75,6 @@ async def enqueue_notification(jobs_exchange,job_id:str,email,file_path):
 
 
 async def get_channel():
-    connection= await aio_pika.connect_robust("amqp://guest:guest@localhost/")
+    connection= await aio_pika.connect_robust(settings.RABBITMQ_URL)
     channel= await connection.channel()
     return connection,channel
-
-asyncio.run(get_channel())

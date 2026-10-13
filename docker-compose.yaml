@@ -1,25 +1,114 @@
+# Inside the compose network the services reach each other by service name,
+# so these override the localhost URLs from .env.
+# The image is built once (by the migrate service) and reused by the others.
+x-app: &app
+  image: distributed-job-queue
+  pull_policy: never
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-divya123}@postgres:5432/${POSTGRES_DB:-postgres}
+    REDIS_URL: redis://redis:6379
+    RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    API_SERVICE_URL: http://api:8000
+    SHORTNER_SERVICE: http://shortener:8001
+    JOB_FILES_DIR: /app/job_files
+
 services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: divya123
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-divya123}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  migrate:
+    <<: *app
+    build: .
+    pull_policy: build
+    working_dir: /app/api-service
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    command: uvicorn app:app --app-dir api-service --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  shortener:
+    <<: *app
+    command: uvicorn main:app --app-dir shortener_service --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    command: python worker_service/worker.py
+    volumes:
+      - job_files:/app/job_files
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      shortener:
+        condition: service_started
+
+  notification:
+    <<: *app
+    command: python notification_service/main.py
+    volumes:
+      - job_files:/app/job_files
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   pgdata:
+  job_files:
