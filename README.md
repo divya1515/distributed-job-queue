@@ -13,6 +13,7 @@ flowchart LR
 
     X --> MQ[main_jobs_queue]
     MQ --> W[Worker service]
+    W -->|token bucket wait| R
     W -->|POST /url-shorten| S[Shortener service<br/>FastAPI :8001]
     S -->|short_code -> long_url| R
     W -->|item status, counters, file_path| PG
@@ -22,7 +23,7 @@ flowchart LR
     W -->|notification_key| X
     X --> NQ[notification_queue]
     NQ --> N[Notification service]
-    N -->|sent-marker| R
+    N -->|token bucket wait<br/>+ sent-marker| R
     N -->|SMTP, XLSX attached| M[Client inbox]
 ```
 
