@@ -80,7 +80,7 @@ flowchart LR
 
 ## How to run
 
-**Prerequisites:** Docker + Docker Compose, Python 3.10+, a Gmail account with an app password.
+**Prerequisites:** Docker + Docker Compose, Python 3.11+, a Gmail account with an app password.
 
 **1. Create `.env` in the project root** by copying the template (`cp .env.example .env`) and filling in these variables:
 
@@ -104,7 +104,7 @@ curl -F file=@urls.csv -F email=you@example.com http://localhost:8000/jobs/bulk_
 
 ### Running the services without Docker
 
-Keep the infrastructure in Docker, then install dependencies and apply migrations (Python 3.11):
+Keep the infrastructure in Docker, then install dependencies and apply migrations (Python 3.11+):
 
 ```bash
 docker compose up -d postgres redis rabbitmq
